@@ -5,48 +5,65 @@ const {
   InteractionType,
   InteractionResponseType
 } = require('discord-interactions');
+const {setup,logCommand,getAllLogs}= require('./config/database')
 
 const app = express();
 
-// ⚠️ Important: do NOT add express.json() before this route.
-// verifyKeyMiddleware reads the raw body itself for signature checking.
-// If you run express.json() first, verification will always fail.
+
 app.post(
   '/interactions',
   verifyKeyMiddleware(process.env.DISCORD_PUBLIC_KEY),
-  (req, res) => {
+  async (req, res) => {
     const interaction = req.body;
 
-    // Type 1 — Discord is checking your endpoint is real (PING)
+    // ping pong check
     if (interaction.type === InteractionType.PING) {
       console.log('Received PING from Discord');
       return res.json({ type: InteractionResponseType.PONG });
     }
 
-    // Type 2 — A user ran a slash command
+    //  slash command
     if (interaction.type === InteractionType.APPLICATION_COMMAND) {
+    
+      const userId = interaction.member.user.id;
+      const username = interaction.member.user.username;
+      const interactionId = interaction.id;
+
+      let responseText = '';
+      let inputText = '';
       const commandName = interaction.data.name;
       console.log(`Received command: /${commandName}`);
 
       if (commandName === 'status') {
-        return res.json({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: { content: '✅ Bot is online and running!' }
-        });
+        // return res.json({
+        //   type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        //   data: { content: ' Bot is online and running!' }
+        // });
+      responseText="Bot is in online"
       }
 
       if (commandName === 'report') {
-        const text = interaction.data.options?.[0]?.value ?? '(no text provided)';
-        return res.json({
-          type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-          data: { content: `📋 Report received: **${text}**` }
-        });
+        inputText = interaction.data.options?.[0]?.value ?? '(no text provided)';
+        // return res.json({
+        //   type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        //   data: { content: `📋 Report received: **${text}**` }
+        // });
+        responseText = ` Report received: **${inputText}**`;
       }
+
+      await logCommand({
+        interaction_id: interactionId,
+        user_id: userId,
+        username: username,
+        command: commandName,
+        input: inputText,
+        response: responseText
+      });
 
       // Fallback for unknown commands
       return res.json({
         type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-        data: { content: 'Unknown command.' }
+        data: { content: responseText || 'Command received and logged.' }
       });
     }
   }
@@ -55,5 +72,14 @@ app.post(
 // Health check — useful for Render to confirm the server is up
 app.get('/', (req, res) => res.send('Bot server is running.'));
 
+// Endpoint to retrieve all command logs
+app.get('/api/logs', async (req, res) => {
+  const logs = await getAllLogs();
+  res.json(logs);
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server listening on port ${PORT}`));
+app.listen(PORT, async() => {
+  await setup();
+  console.log(`Server listening on port ${PORT}`);
+});
