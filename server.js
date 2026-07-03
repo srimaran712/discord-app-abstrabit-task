@@ -1,4 +1,5 @@
 require('dotenv').config();
+const Cors = require('cors');
 const express = require('express');
 const {
   verifyKeyMiddleware,
@@ -9,7 +10,11 @@ const {setup,logCommand,getAllLogs}= require('./config/database')
 
 const app = express();
 
-
+app.use(Cors({
+  allowMethods: ['POST', 'GET'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+  origin: '*'
+}));
 app.post(
   '/interactions',
   verifyKeyMiddleware(process.env.DISCORD_PUBLIC_KEY),
