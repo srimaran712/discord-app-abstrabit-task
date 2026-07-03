@@ -7,6 +7,7 @@ const {
   InteractionResponseType
 } = require('discord-interactions');
 const {setup,logCommand,getAllLogs}= require('./config/database')
+const {job}= require('./helpers/scheduler')
 
 const app = express();
 
