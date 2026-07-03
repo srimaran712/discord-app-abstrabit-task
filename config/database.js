@@ -7,7 +7,7 @@ const connectionPool= new Pool({
 })
 
 async function setup() {
-  await pool.query(`
+  await connectionPool.query(`
     CREATE TABLE IF NOT EXISTS command_logs (
       id SERIAL PRIMARY KEY,
       interaction_id TEXT UNIQUE, -- used to prevent duplicate processing
@@ -25,7 +25,7 @@ async function setup() {
 
 
 async function logCommand({ interaction_id, user_id, username, command, input, response }) {
-  await pool.query(
+  await connectionPool.query(
     `INSERT INTO command_logs 
       (interaction_id, user_id, username, command, input, response)
      VALUES ($1, $2, $3, $4, $5, $6)
@@ -35,7 +35,7 @@ async function logCommand({ interaction_id, user_id, username, command, input, r
 }
 
 async function getAllLogs() {
-  const result = await pool.query(
+  const result = await connectionPool.query(
     'SELECT * FROM command_logs ORDER BY created_at DESC'
   );
   return result.rows;
